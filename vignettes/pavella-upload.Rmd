@@ -1,0 +1,60 @@
+---
+title: "Bulk Uploading Mammal Data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bulk Uploading Mammal Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The purpose of the `bulkUploader` package is to help data managers to bring their data into the [Neotoma Paleoecology Database](https://neotomadb.org).  Neotoma is a highly structured database that contains information on a large number of data types, including diatoms, ostracodes, pollen and mammal fossils.
+
+Neotoma is really a "database of databases", and contains X constituent databases.  To help data managers include their data in Neotoma, we have wrapped Neotoma package functions around tools to help manage, validate and upload their data into Neotoma.
+
+## Managing your Data
+
+The easiest data to enter into Neotoma is the publication data and contact data.  From a given database, or data resource, check 
+
+### Publication Data
+
+However your publication data is organized, it must be aligned with Neotoma's so that it can be included in the database.  The Neotoma `publications` table uses the following fields:
+
+```{r setup}
+library(bulkUploader)
+library(neotoma2)
+```
+
+```{r}
+
+results <- data.frame(score=rep(NA, nrow(miomapcsv)), delta = NA)
+outputs <- list()
+
+for (i in 1:nrow(miomapcsv)) {
+  container = ifelse(is.na(miomapcsv$Journal[i]),
+                     miomapcsv$Book.Title[i],
+                     miomapcsv$Journal[i])
+  if(is.na(container)) {
+    message("Row ", i, " is missing a title.")
+  } else {
+    outputs[[i]] <- scrape_dois(title = miomapcsv$Title[i],
+                        year = miomapcsv$Year[i])
+    if (length(test) > 0) {
+      results$score[i] <- test[[1]]$score
+      if (length(test) > 1) {
+        results$delta[i] <- test[[1]]$score - test[[2]]$score
+      }
+      message("Tested article ", i)
+    } else {
+      message("Couldn't get a match for ", i)
+    }
+  }
+}
+```
+
