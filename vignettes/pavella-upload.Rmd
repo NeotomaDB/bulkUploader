@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-```
+1```
 
 The purpose of the `bulkUploader` package is to help data managers to bring their data into the [Neotoma Paleoecology Database](https://neotomadb.org).  Neotoma is a highly structured database that contains information on a large number of data types, including diatoms, ostracodes, pollen and mammal fossils.
 
@@ -27,7 +27,9 @@ The easiest data to enter into Neotoma is the publication data and contact data.
 However your publication data is organized, it must be aligned with Neotoma's so that it can be included in the database.  The Neotoma `publications` table uses the following fields:
 
 ```{r setup}
+devtools::install_github('NeotomaDB/bulkuploader')
 library(bulkUploader)
+devtools::install_github('NeotomaDB/neotoma2')
 library(neotoma2)
 ```
 
