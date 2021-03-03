@@ -4,3 +4,10 @@
 makeCite <- function(x, ...) {
   paste(x, ..., sep = ". ")
 }
+
+#' @export
+pullAuth <- function(x) {
+  x@authors %>%
+    map(function(y) paste(y@author@familyname, y@author@givennames, sep=', ')) %>%
+    unlist()
+}

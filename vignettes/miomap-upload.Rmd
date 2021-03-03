@@ -22,6 +22,8 @@ Neotoma is really a "database of databases", and contains X constituent database
 library(bulkUploader)
 devtools::install_github('NeotomaDB/neotoma2')
 library(neotoma2)
+library(purrr)
+library(dplyr)
 ```
 
 ## Managing your Data

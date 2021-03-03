@@ -13,7 +13,14 @@ cr_to_neotoma <- function(crObject) {
       paste(collapse = '/') %>%
       lubridate::parse_date_time(c('Ym', 'Ymd'), quiet = TRUE)
 
-    makeAuthors <- map(x$author, function(y) paste0(y$family, ', ', y$given))
+    makeAuthors <- new("authors",
+                       authors = map(x$author, function(y) {
+                        new("author",
+                            author = new("contact",
+                                         familyname =y$family,
+                                         givennames= y$given),
+          order = 1)
+      }))
 
     testNull <- function(val, out) {
       if(is.null(val)) { return(out)} else {return(val)}
