@@ -60,7 +60,11 @@ outputs <- list()
 
 # Ideally this code would be massaged.  The issue here is that there is title and journal information in several places.  It's not the nicest way of doing things.
 
-for (i in 1:nrow(miomapcsv)) {
+if(file.exists("outputs.RDS")) {
+  outputs <- readRDS("outputs.RDS")
+}
+
+for (i in (length(outputs) + 1):nrow(miomapcsv)) {
   if (is.na(results$score[i])) {
     # Just testing to see if there's a title.
     container = ifelse(is.na(miomapcsv$Journal[i]),
@@ -91,7 +95,10 @@ for (i in 1:nrow(miomapcsv)) {
       }
     }
   }
+  saveRDS(outputs, "output.RDS")
 }
+
+
 ```
 
 From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We also have a `data.frame` called `results` with columns `score` and `delta`.
@@ -116,7 +123,7 @@ Now, for each publication we have a set of possible matches, and scores.  We nee
 ```{r getMatches, results='hide'}
 bestMatch <- list()
 
-for(i in 1:length(miocites)) {
+for(i in 1:length(crossCites)) {
   bestMatch[[i]] <- findMatch(miocites[i], results[i,], crossCites[[i]])
   if (!('publication' %in% class(bestMatch[[i]]) | is.na(bestMatch[[i]]))) {
     bestMatch[[i]] <- NULL
