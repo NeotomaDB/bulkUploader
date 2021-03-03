@@ -29,24 +29,25 @@ However your publication data is organized, it must be aligned with Neotoma's so
 ```{r setup, result='hide'}
 devtools::install_github('NeotomaDB/bulkuploader')
 library(bulkUploader)
-devtools::install_github('NeotomaDB/neotoma2')
+devtools::install_github('NeotomaDB/neotoma2') 
 library(neotoma2)
+
 ```
 
 ```{r}
 
-results <- data.frame(score=rep(NA, nrow(miomapcsv)), delta = NA)
+results <- data.frame(score=rep(NA, nrow(pavelacsv)), delta = NA)
 outputs <- list()
 
-for (i in 1:nrow(miomapcsv)) {
-  container = ifelse(is.na(miomapcsv$Journal[i]),
-                     miomapcsv$Book.Title[i],
-                     miomapcsv$Journal[i])
+for (i in 1:nrow(pavelacsv)) {
+  container = ifelse(is.na(pavelacsv$journal[i]),
+                     pavelacsv$booktitle[i],
+                     pavelacsv$journal[i]) # if first element is 'TRUE', then this returns a number corresponding to the level index for the book title' if first element is 'FALSE', then this returns a number corresponding to the level index for the journal
   if(is.na(container)) {
     message("Row ", i, " is missing a title.")
   } else {
-    outputs[[i]] <- scrape_dois(title = miomapcsv$Title[i],
-                        year = miomapcsv$Year[i])
+    outputs[[i]] <- scrape_dois(title = pavelacsv$articletitle[i],
+                        year = pavelacsv$year[i])
     if (length(outputs[[i]]) > 0) {
       results$score[i] <- outputs[[i]][[1]]$score
       if (length(outputs[[i]]) > 1) {
@@ -58,5 +59,21 @@ for (i in 1:nrow(miomapcsv)) {
     }
   }
 }
+```
+
+From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We also have a `data.frame` called `results` with columns `score` and `delta`.
+
+The `score` gives the approximate match strength to a publication in CrossRef.  The `delta` lets us know what the score of the next closest match is.  Because we need to work with the CrossRef API in a reasonable way, this matching tends to be slow.
+
+Once this script runs we then have a set of publications for the constituent database, and for each described publication we have 0 or more potential matches.  To generate a simple match we want to create some form of citation.  We can do this using the very simple helper function `makeCite()`.
+
+
+```{r reviewPubs}
+
+pavelacites <- makeCite(pavelacsv$year, 
+                     pavelacsv$articletitle, 
+                     pavelacsv$journal)
+
+crossCites <- outputs %>% map(cr_to_neotoma) # Note: this section may not work until I can get neotoma2 to load
 ```
 
