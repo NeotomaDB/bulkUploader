@@ -35,7 +35,7 @@ cr_to_neotoma <- function(crObject) {
         volume = testNull(x$volume, NA_character_),
         issue = testNull(x$`journal-issue`$issue, NA_character_),
         pages = testNull(x$page, NA_character_),
-        citation = makeCite(paste(makeAuthors, collapse = '; '),
+        citation = makeCite(paste(pullAuth(makeAuthors), collapse = '; '),
                             lubridate::year(dateParse),
                             x$title,
                             x$`container-title`[[1]],
