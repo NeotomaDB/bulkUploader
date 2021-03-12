@@ -130,6 +130,7 @@ miocites <- makeCite(miomapcsv$Author,
                      miomapcsv$Journal)
 
 ## This code is not working, I think becaase tibbles handle retrieving data by column name vs number differently than a dataframe?
+## Maybe I need to use "select" function here instead? that's probably a better option anyways.
 # miocites <- makeCite(originalcsv[,which(colnames(originalcsv)==author)], 
 #                      originalcsv[,which(colnames(originalcsv)==year)], 
 #                      originalcsv[,which(colnames(originalcsv)==title)], 
