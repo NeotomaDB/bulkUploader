@@ -64,6 +64,11 @@ year <- "Year" # column name that corresponds to year
 title  <- "Title" # column name that corresponds to article title
 journal <- "Journal" # column name that corresponds to journal
 booktitle <- "Book.Title" # column name that corresponds to book title (if different than the article title column)
+
+dat <- originalcsv %>%
+  select(author = as.character(author), year = as.character(year), title = as.character(title), journal = as.character(journal))
+
+#I think this could work - turn this into a "convertdata" function??
 ```
 
 
