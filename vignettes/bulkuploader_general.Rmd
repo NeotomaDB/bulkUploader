@@ -65,10 +65,15 @@ title  <- "Title" # column name that corresponds to article title
 journal <- "Journal" # column name that corresponds to journal
 booktitle <- "Book.Title" # column name that corresponds to book title (if different than the article title column)
 
-dat <- originalcsv %>%
-  select(author = as.character(author), year = as.character(year), title = as.character(title), journal = as.character(journal))
+convertdata <- function(x, author, year, title, journal){ # no booktitle yet!
+  x <- x %>%
+  select(author = as.character(author), 
+         year = as.character(year), 
+         title = as.character(title), 
+         journal = as.character(journal))
+}
 
-#I think this could work - turn this into a "convertdata" function??
+testdat <- convertdata(miomapcsv, "Author", "Year", "Title", "Journal")
 ```
 
 
@@ -84,10 +89,10 @@ if(file.exists("outputs.RDS")) {
   outputs <- readRDS("outputs.RDS")
 }
 
-for (i in (length(outputs) + 1):nrow(originalcsv)) {
+for (i in (length(outputs) + 1):10){ #nrow(originalcsv)) {
   if (is.na(results$score[i])) {
     # Just testing to see if there's a title.
-    container = ifelse(is.na(originalcsv[i, which(colnames(originalcsv)==journal)]),
+    container = ifelse(is.na(originalcsv[i, 'journal')]),
                        originalcsv[i, which(colnames(originalcsv)==booktitle)],
                        originalcsv[i, which(colnames(originalcsv)==journal)])
     
