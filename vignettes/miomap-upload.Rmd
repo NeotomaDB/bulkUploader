@@ -54,6 +54,8 @@ Users can directly add new information into Neotoma using the `neotoma2::add_pub
 
 # Note that `miomapcsv` is a data element contained within the `bulkUploader` package 
 
+data <- data(miomap)
+
 # Setup the variables for storing output ahead of time.
 results <- data.frame(score=rep(NA, nrow(miomapcsv)), delta = NA)
 outputs <- list()
@@ -63,6 +65,11 @@ outputs <- list()
 if(file.exists("outputs.RDS")) {
   outputs <- readRDS("outputs.RDS")
 }
+
+pubList <- formatPubs(miomapcsv, 
+                      author='Author', 
+                      year='Year', 
+                      title=c('Title', 'Book.Title'))
 
 for (i in (length(outputs) + 1):nrow(miomapcsv)) {
   if (is.na(results$score[i])) {
@@ -97,7 +104,6 @@ for (i in (length(outputs) + 1):nrow(miomapcsv)) {
   }
   saveRDS(outputs, "output.RDS")
 }
-
 
 ```
 
