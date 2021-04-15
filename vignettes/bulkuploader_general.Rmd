@@ -53,34 +53,46 @@ Users can directly add new information into Neotoma using the `neotoma2::add_pub
 
 If a user wants to use `scrape_dois()`, a function in the `bulkUploader` package, they need to first match  their dataframe column names with the appropriate column names:
 
+First, we load in the "convertdata" function
+```{r convertdatafcn, results='hide'}
+convertdata <- function(x, author, year, title, journal, booktitle){
+    # note: I think this should handle a case where booktitle is missing, but all others are required
+  
+    if (missingArg(booktitle)){
+      x <- x %>%
+        select(author = as.character(author), 
+               year = as.character(year), 
+               title = as.character(title), 
+               journal = as.character(journal))
+    }else{
+      x <- x %>%
+        select(author = as.character(author), 
+               year = as.character(year), 
+               title = as.character(title), 
+               journal = as.character(journal),
+               booktitle = as.character(booktitle))
+    }
+}
+```
+
+Next, import user data and convert to the bulkuploader format
 ```{r importdata, results='hide'}
 
 originalcsv <- miomapcsv #point to the appropriate R object for the imported dataframe
 # Note that `miomapcsv` is a data element contained within the `bulkUploader` package, but that this could be any dataframe that the user has imported
 
-# reconcile columns
-author <- "Author" # column name that corresponds to first author name
-year <- "Year" # column name that corresponds to year
-title  <- "Title" # column name that corresponds to article title
-journal <- "Journal" # column name that corresponds to journal
-booktitle <- "Book.Title" # column name that corresponds to book title (if different than the article title column)
+# do you want to only run for a subset of rows (10) to test functionality? change between y or n
+testing <- 'y'
+testrows <- 10
 
-convertdata <- function(x, author, year, title, journal){ # no booktitle yet!
-  x <- x %>%
-  select(author = as.character(author), 
-         year = as.character(year), 
-         title = as.character(title), 
-         journal = as.character(journal))
-}
-
-testdat <- convertdata(miomapcsv, "Author", "Year", "Title", "Journal")
+dat_arranged <- convertdata(miomapcsv, "Author", "Year", "Title", "Journal", "Book.Title")
 ```
 
 
 ```{r scrapedois, results='hide'}
 
 # Setup the variables for storing output ahead of time.
-results <- data.frame(score=rep(NA, nrow(originalcsv)), delta = NA)
+results <- data.frame(score=rep(NA, nrow(dat_arranged)), delta = NA)
 outputs <- list()
 
 # Ideally this code would be massaged.  The issue here is that there is title and journal information in several places.  It's not the nicest way of doing things.
@@ -89,18 +101,30 @@ if(file.exists("outputs.RDS")) {
   outputs <- readRDS("outputs.RDS")
 }
 
-for (i in (length(outputs) + 1):10){ #nrow(originalcsv)) {
-  if (is.na(results$score[i])) {
-    # Just testing to see if there's a title.
-    container = ifelse(is.na(originalcsv[i, 'journal')]),
-                       originalcsv[i, which(colnames(originalcsv)==booktitle)],
-                       originalcsv[i, which(colnames(originalcsv)==journal)])
+# specify the number of rows to run
+if (testing == 'y'){
+  rowsToRun <- testrows
+  }else{
+    rowsToRun <- nrow(dat_arranged)
+  }
+
+for (i in (length(outputs) + 1):rowsToRun) {
+
+  # JLB note sure why Simon added this 'if' statement
+  # Aren't ALL rows returned as TRUE because that's how the 'results' dataframe is specified?
+  # Maybe this makes sure that the results file was actually created?
+  if (is.na(results$score[i])) { 
+
+    # Testing to see if there's a journal or book title.
+    container = ifelse(is.na(dat_arranged[i, 'journal']),
+                       dat_arranged[i, 'booktitle'],
+                       dat_arranged[i, 'journal'])
     
     if (is.na(container)) {
-      message("Row ", i, " is missing a title.")
+      message("Row ", i, " is missing a journal or book title.")
     } else {
-      outputs[[i]] <- scrape_dois(title = originalcsv[i, which(colnames(originalcsv)==title)],
-                          year = originalcsv[i, which(colnames(originalcsv)==year)])
+      outputs[[i]] <- scrape_dois(title = dat_arranged[i, 'title'],
+                          year = dat_arranged[i, 'year'])
       
       if (length(outputs[[i]]) > 0) {
         
@@ -123,7 +147,6 @@ for (i in (length(outputs) + 1):10){ #nrow(originalcsv)) {
   saveRDS(outputs, "output.RDS")
 }
 
-
 ```
 
 From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We also have a `data.frame` called `results` with columns `score` and `delta`.
@@ -134,17 +157,10 @@ Once this script runs we then have a set of publications for the constituent dat
 
 ```{r reviewPubs}
 
-miocites <- makeCite(miomapcsv$Author,
-                     miomapcsv$Year,
-                     miomapcsv$Title,
-                     miomapcsv$Journal)
-
-## This code is not working, I think becaase tibbles handle retrieving data by column name vs number differently than a dataframe?
-## Maybe I need to use "select" function here instead? that's probably a better option anyways.
-# miocites <- makeCite(originalcsv[,which(colnames(originalcsv)==author)], 
-#                      originalcsv[,which(colnames(originalcsv)==year)], 
-#                      originalcsv[,which(colnames(originalcsv)==title)], 
-#                      originalcsv[,which(colnames(originalcsv)==journal)])
+arrangedcites <- makeCite(dat_arranged$author,
+                     dat_arranged$year,
+                     dat_arranged$title,
+                     dat_arranged$journal)
 
 crossCites <- outputs %>% map(cr_to_neotoma)
 
@@ -156,7 +172,7 @@ Now, for each publication we have a set of possible matches, and scores.  We nee
 bestMatch <- list()
 
 for(i in 1:length(crossCites)) {
-  bestMatch[[i]] <- findMatch(miocites[i], results[i,], crossCites[[i]])
+  bestMatch[[i]] <- findMatch(arrangedcites[i], results[i,], crossCites[[i]])
   if (!('publication' %in% class(bestMatch[[i]]) | is.na(bestMatch[[i]]))) {
     bestMatch[[i]] <- NULL
     break
