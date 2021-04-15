@@ -33,7 +33,7 @@ scrape_dois <- function(x, n = 20, savefile = NA, restore = TRUE) {
     output <- list()
   }
 
-  for(i in 1:nrow(x)) {
+  for(i in (length(output) + 1):nrow(x)) {
     pb$tick()
     output[[i]] <- pullResult(as.list(data.frame(x[i,])))
     if(!is.na(savefile)) {
