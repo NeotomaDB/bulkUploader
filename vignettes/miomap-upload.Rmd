@@ -54,87 +54,43 @@ Users can directly add new information into Neotoma using the `neotoma2::add_pub
 
 # Note that `miomapcsv` is a data element contained within the `bulkUploader` package 
 
-data <- data(miomap)
-
-# Setup the variables for storing output ahead of time.
-results <- data.frame(score=rep(NA, nrow(miomapcsv)), delta = NA)
-outputs <- list()
+data <- data(miomapcsv)
 
 # Ideally this code would be massaged.  The issue here is that there is title and journal information in several places.  It's not the nicest way of doing things.
-
-if(file.exists("outputs.RDS")) {
-  outputs <- readRDS("outputs.RDS")
-}
 
 pubList <- formatPubs(miomapcsv, 
                       author='Author', 
                       year='Year', 
                       title=c('Title', 'Book.Title'))
 
-for (i in (length(outputs) + 1):nrow(miomapcsv)) {
-  if (is.na(results$score[i])) {
-    # Just testing to see if there's a title.
-    container = ifelse(is.na(miomapcsv$Journal[i]),
-                       miomapcsv$Book.Title[i],
-                       miomapcsv$Journal[i])
-    
-    if (is.na(container)) {
-      message("Row ", i, " is missing a title.")
-    } else {
-      outputs[[i]] <- scrape_dois(title = miomapcsv$Title[i],
-                          year = miomapcsv$Year[i])
-      
-      if (length(outputs[[i]]) > 0) {
-        
-        results$score[i] <- outputs[[i]][[1]]$score
-        
-        if (length(outputs[[i]]) > 1) {
-          results$delta[i] <- outputs[[i]][[1]]$score - outputs[[i]][[2]]$score
-        }
-        
-        outputs[[i]]$results <- results[i,]
-        
-        message("Tested article ", i)
-        
-      } else {
-        # The result row will have an NA for that row.
-        message("Couldn't get a match for ", i)
-      }
-    }
-  }
-  saveRDS(outputs, "output.RDS")
-}
+outputs <- scrape_dois(pubList[1:10,], 
+            n = 3, 
+            savefile = 'miotest.RDS', 
+            restore = FALSE)
 
+results <- map(outputs, get_cr_results)
 ```
 
-From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We also have a `data.frame` called `results` with columns `score` and `delta`.
+From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We also have a `list` called `results`.  The `list` has a length equal to the length of `outputs` and is made up of individual `data.frame`s, with columns `score` and `delta`, showing the quality of each match returned by the CrossRef API, and the quality of the next matches.  This is useful to understand the quality of the matches.  High quality matches with have a high `diff` score between the first and second matches, and a generally high `score` value.
 
 The `score` gives the approximate match strength to a publication in CrossRef.  The `delta` lets us know what the score of the next closest match is.  Because we need to work with the CrossRef API in a reasonable way, this matching tends to be slow.
 
 Once this script runs we then have a set of publications for the constituent database, and for each described publication we have 0 or more potential matches.  To generate a simple match we want to create some form of citation.  We can do this using the very simple helper function `makeCite()`.
 
 ```{r reviewPubs}
-
-miocites <- makeCite(miomapcsv$Author, 
-                     miomapcsv$Year, 
-                     miomapcsv$Title, 
+miocites <- makeCite(miomapcsv$Author,
+                     miomapcsv$Year,
+                     miomapcsv$Title,
                      miomapcsv$Journal)
 
 crossCites <- outputs %>% map(cr_to_neotoma)
-
 ```
 
 Now, for each publication we have a set of possible matches, and scores.  We need to prompt the user to select the best match:
 
 ```{r getMatches, results='hide'}
-bestMatch <- list()
-
-for(i in 1:length(crossCites)) {
-  bestMatch[[i]] <- findMatch(miocites[i], results[i,], crossCites[[i]])
-  if (!('publication' %in% class(bestMatch[[i]]) | is.na(bestMatch[[i]]))) {
-    bestMatch[[i]] <- NULL
-    break
-  }
-}
+bestMatch <- matchPubs(cross = crossCites,
+                       pubs = miocites,
+                       results = results)
 
 ```
