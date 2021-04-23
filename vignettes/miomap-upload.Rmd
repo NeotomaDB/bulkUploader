@@ -94,3 +94,13 @@ bestMatch <- matchPubs(cross = crossCites,
                        results = results)
 
 ```
+
+The `matchesPubs()` function goes through each of the publications and provides the user with the ability to select the best match for a publication (if it exists) based on the CrossRef metadata.
+
+## Matching to Neotoma
+
+For this process, we now have a variable `bestMatch` that is a `neotoma2` package `publications` object.  It contains all the information needed to add a publication to Neotoma (or to match a publication within Neotoma).  By default `bestMatch` does not include `publicationid`, because this data has only been drawn from CrossRef.  We now need to find matches from Neotoma.  To do that, we use the `get_publications()` method implemented for `publication` lists.  This checks for publications that are missing publication IDs and returns that information.
+
+```{r}
+get_publications(bestMatch)
+```
