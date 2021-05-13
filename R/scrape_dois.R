@@ -1,9 +1,15 @@
 #' @title Scrape publication metadata from Crossref
 #' @description Using publication information, retrieve a DOI and relevant publication information for a journal article.
+#' @param x A formatted publication list for the CrossRef API.
+#' @param n The number of records to return from CrossRef.  Default is 20, but in practice only about 3 records are needed for direct matching.
+#' @param savefile A location for saving the (periodic) output from the CrossRef API.
+#' @param restore Should the function look for an existing instance of the file?
 #' @importFrom httr GET content
 #' @importFrom jsonlite fromJSON
 #' @import progress
-scrape_dois <- function(x, n = 20, savefile = NA, restore = TRUE) {
+scrape_dois <- function(x, n = 20,
+                        savefile = NA,
+                        restore = TRUE) {
 
   x$rows = n
   x$sort="score"
@@ -27,8 +33,11 @@ scrape_dois <- function(x, n = 20, savefile = NA, restore = TRUE) {
   }
 
   if(!is.na(savefile) & restore == TRUE) {
-    output <- tryCatch(readRDS(savefile),
-                       error={stop("Could not find savefile to restore from.")})
+    output <- try(readRDS(savefile))
+    if('try-error' %in% class(output)) {
+      stop("Could not find savefile to restore from.  Generating new save file.")
+      output <- list()
+    }
   } else {
     output <- list()
   }
@@ -36,6 +45,7 @@ scrape_dois <- function(x, n = 20, savefile = NA, restore = TRUE) {
   for(i in (length(output) + 1):nrow(x)) {
     pb$tick()
     output[[i]] <- pullResult(as.list(data.frame(x[i,])))
+    cat(i)
     if(!is.na(savefile)) {
       saveRDS(output, savefile)
     }

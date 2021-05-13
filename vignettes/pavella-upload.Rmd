@@ -1,8 +1,8 @@
 ---
-title: "Bulk Uploading Mammal Data"
+title: "Bulk Uploading Pavella Vertebrate Data"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Bulk Uploading Mammal Data}
+  %\VignetteIndexEntry{Bulk Uploading Pavella Vertebrate Data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
