@@ -7,6 +7,7 @@
 #' @importFrom httr GET content
 #' @importFrom jsonlite fromJSON
 #' @import progress
+#' @export
 scrape_dois <- function(x, n = 20,
                         savefile = NA,
                         restore = TRUE) {
@@ -18,14 +19,27 @@ scrape_dois <- function(x, n = 20,
   pb <- progress::progress_bar$new(total=nrow(x))
 
   pullResult <- function(inp) {
-    url <- "https://api.crossref.org/works"
-    result <- httr::GET(url,
-                      query=inp)
-
+    if('doi' %in% names(inp)) {
+      url <- paste0("https://api.crossref.org/works/", inp$doi)
+      result <- httr::GET(url,
+                          add_headers(mailto="neotomadb@gmail.com"),
+                          user_agent("Neotoma Bulk Uploader v0.1 (https://github.com/NeotomaDB/bulkUploader)"))
+    } else {
+      url <- "https://api.crossref.org/works"
+      result <- httr::GET(url,
+                        query=inp,
+                        add_headers(mailto="neotomadb@gmail.com"),
+                        user_agent("Neotoma Bulk Uploader v0.1 (https://github.com/NeotomaDB/bulkUploader)"))
+    }
     if (result$status_code == 200) {
       output <- httr::content(result)
       totres <- output$message$`total-results`
-      pubs <- output$message$items
+      if('items' %in% names(output$message)) {
+        pubs <- output$message$items
+      } else {
+        pubs <- list(output$message)
+      }
+      
       return(pubs)
     } else {
       return(NULL)
@@ -33,9 +47,9 @@ scrape_dois <- function(x, n = 20,
   }
 
   if(!is.na(savefile) & restore == TRUE) {
-    output <- try(readRDS(savefile))
+    output <- try(readRDS(savefile), silent = TRUE)
     if('try-error' %in% class(output)) {
-      stop("Could not find savefile to restore from.  Generating new save file.")
+      warning("Could not find savefile to restore from.  Generating new save file.")
       output <- list()
     }
   } else {
