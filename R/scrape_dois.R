@@ -20,6 +20,9 @@ scrape_dois <- function(x, n = 20,
 
   pullResult <- function(inp) {
     if('doi' %in% names(inp)) {
+      if(is.na(inp$doi)) inp$doi <- NULL
+    }
+    if('doi' %in% names(inp)) {
       url <- paste0("https://api.crossref.org/works/", inp$doi)
       result <- httr::GET(url,
                           add_headers(mailto="neotomadb@gmail.com"),
