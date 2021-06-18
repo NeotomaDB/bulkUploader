@@ -24,6 +24,7 @@ devtools::install_github('NeotomaDB/neotoma2')
 library(neotoma2)
 library(purrr)
 library(dplyr)
+library(httr)
 ```
 
 ## Managing your Data
@@ -54,19 +55,20 @@ Users can directly add new information into Neotoma using the `neotoma2::add_pub
 
 # Note that `miomapcsv` is a data element contained within the `bulkUploader` package 
 
-data <- data(miomapcsv)
+neotoma <- readr::read_csv('./data/neotoma_pubs.csv')
 
 # Ideally this code would be massaged.  The issue here is that there is title and journal information in several places.  It's not the nicest way of doing things.
 
-pubList <- formatPubs(miomapcsv[1:3,], 
-                      author='Author',
-                      year='Year',
-                      title=c('Title', 'Book.Title'))
+pubList <- formatPubs(neotoma, 
+                      citation = 'citation',
+                      year = 'year',
+                      title = c('articletitle', 'booktitle'),
+                      doi = 'doi') %>% filter(!is.na(doi))
 
-outputs <- scrape_dois(pubList,
+outputs <- scrape_dois(pubList[1:10,],
             n = 3, 
-            savefile = './data/miotest.RDS', 
-            restore = TRUE)
+            savefile = 'data/neotomatab.RDS', 
+            restore = FALSE)
 
 results <- map(outputs, get_cr_results)
 ```
@@ -78,10 +80,7 @@ The `score` gives the approximate match strength to a publication in CrossRef.  
 Once this script runs we then have a set of publications for the constituent database, and for each described publication we have 0 or more potential matches.  To generate a simple match we want to create some form of citation.  We can do this using the very simple helper function `makeCite()`.
 
 ```{r reviewPubs}
-miocites <- makeCite(miomapcsv$Author,
-                     miomapcsv$Year,
-                     miomapcsv$Title,
-                     miomapcsv$Journal)
+neoCites <- makeCite(pubList$citation)
 
 crossCites <- outputs %>% map(cr_to_neotoma)
 ```
@@ -90,11 +89,11 @@ Now, for each publication we have a set of possible matches, and scores.  We nee
 
 ```{r getMatches, results='hide'}
 bestMatch <- matchPubs(cross = crossCites,
-                       pubs = miocites,
+                       pubs = neoCites,
                        results = results)
 ```
 
-The `matchesPubs()` function goes through each of the publications and provides the user with the ability to select the best match for a publication (if it exists) based on the CrossRef metadata.
+The `matchPubs()` function goes through each of the publications and provides the user with the ability to select the best match for a publication (if it exists) based on the CrossRef metadata.
 
 ## Matching to Neotoma
 
@@ -104,7 +103,7 @@ For this process, we now have a variable `bestMatch` that is a `neotoma2` packag
 matchedPubs <- get_publications(bestMatch)
 ```
 
-# Data States after Matching:
+## Data States after Matching
 
 | Publication State | in Miomap | in crossref  | in neotoma |
 | ----------- | -------------- | ------------ | ------------
