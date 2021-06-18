@@ -1,0 +1,114 @@
+---
+title: "Bulk Uploading Miomap Vertebrate Data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bulk Uploading Miomap Vertebrate Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The purpose of the `bulkUploader` package is to help data managers to bring their data into the [Neotoma Paleoecology Database](https://neotomadb.org).  Neotoma is a highly structured database that contains information on a large number of data types, including diatoms, ostracodes, pollen and mammal fossils.
+
+Neotoma is really a "database of databases", and contains X constituent databases.  To help data managers include their data in Neotoma, we have wrapped Neotoma package functions around tools to help manage, validate and upload their data into Neotoma.
+
+```{r setup, results='hide', message=FALSE}
+library(bulkUploader)
+devtools::install_github('NeotomaDB/neotoma2')
+library(neotoma2)
+library(purrr)
+library(dplyr)
+library(httr)
+```
+
+## Managing your Data
+
+The easiest data to enter into Neotoma is the publication data and contact data.  From a given database, or data resource, we want to check that information is accurate.  For contacts, unless we have ORCIDs for all users, we're stuck hand-checking information.  For publication records we can use the DOI as a "gold standard" for publication information, since CrossRef manages this data for us, and provides a unique identifier that we can check against Neotoma's information.
+
+### Publication Data
+
+However your publication data is organized, it must be aligned with Neotoma's so that it can be included in the database.  The Neotoma `publications` table uses the following fields in the `publication` object:
+
+| Field | Description |
+=========== | =================
+| publicationtype | The type of publication |
+| publicationid | A unique Neotoma publication identifier |
+| articletitle | The title of the document |
+| year | The publishing year where available |
+| journal | The journal (if available) |
+| volume | Journal volume |
+| issue | Journal issue |
+| pages | Pages over which the item spans |
+| citation | A plain text citation, generally APA format. |
+| doi | The article DOI |
+| author |  A list of `contacts` |
+
+Users can directly add new information into Neotoma using the `neotoma2::add_publication()` function, or they can use `scrape_dois()`, a function in the `bulkUploader` package, to validate publication information and to add additional metadata, where such metadata does not already exist.
+
+```{r scrapedois, results='hide'}
+
+# Note that `miomapcsv` is a data element contained within the `bulkUploader` package 
+
+neotoma <- readr::read_csv('./data/neotoma_pubs.csv')
+
+# Ideally this code would be massaged.  The issue here is that there is title and journal information in several places.  It's not the nicest way of doing things.
+
+pubList <- formatPubs(neotoma, 
+                      citation = 'citation',
+                      year = 'year',
+                      title = c('articletitle', 'booktitle'),
+                      doi = 'doi') %>% filter(!is.na(doi))
+
+outputs <- scrape_dois(pubList[1:10,],
+            n = 3, 
+            savefile = 'data/neotomatab.RDS', 
+            restore = FALSE)
+
+results <- map(outputs, get_cr_results)
+```
+
+From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We have a `list` called `results` with a length equal to the length of `outputs`.  The `results` object is made up of individual `data.frame`s, with columns `score` and `delta`, showing the quality of each match returned by the CrossRef API, and the quality of subsequent matches (using the CrossRef scoring value).  Knowing the `delta` is useful to understand the quality of the matches.  High quality matches have a high `delta` score between the first and second matches, and a generally high `score` value.
+
+The `score` gives the approximate match strength to a publication in CrossRef.  The `delta` lets us know what the score of the next closest match is.  Because we need to work with the CrossRef API in a reasonable way, this matching tends to be slow.
+
+Once this script runs we then have a set of publications for the constituent database, and for each described publication we have 0 or more potential matches.  To generate a simple match we want to create some form of citation.  We can do this using the very simple helper function `makeCite()`.
+
+```{r reviewPubs}
+neoCites <- makeCite(pubList$citation)
+
+crossCites <- outputs %>% map(cr_to_neotoma)
+```
+
+Now, for each publication we have a set of possible matches, and scores.  We need to prompt the user to select the best match:
+
+```{r getMatches, results='hide'}
+bestMatch <- matchPubs(cross = crossCites,
+                       pubs = neoCites,
+                       results = results)
+```
+
+The `matchPubs()` function goes through each of the publications and provides the user with the ability to select the best match for a publication (if it exists) based on the CrossRef metadata.
+
+## Matching to Neotoma
+
+For this process, we now have a variable `bestMatch` that is a `neotoma2` package `publications` object.  It contains all the information needed to add a publication to Neotoma (or to match a publication within Neotoma).  By default `bestMatch` does not include `publicationid`, because this data has only been drawn from CrossRef.  We now need to find matches from Neotoma.  To do that, we use the `get_publications()` method implemented for `publication` lists.  This checks for publications that are missing publication IDs and returns that information.
+
+```{r}
+matchedPubs <- get_publications(bestMatch)
+```
+
+## Data States after Matching
+
+| Publication State | in Miomap | in crossref  | in neotoma |
+| ----------- | -------------- | ------------ | ------------
+| Only in Miomap | X | | |
+
+In the case where there is a conflict between Neotoma & CrossRef/Miomap either missing data needs to be filled (easy), or one or the other field needs to be updated.
+
+`attr(toUpdate=FALSE, conflict=NULL)`
