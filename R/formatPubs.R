@@ -69,7 +69,7 @@ formatPubs <- function(x, title=NULL, author=NULL, year = NULL, editor=NULL, cit
 
     if (!is.null(citation)) {
         output[['query.bibliographic']] <- x[,citation]
-        if ('title' %in% names(output)) output$title <- NULL
+        #if ('title' %in% names(output)) output$title <- NULL
     }
 
     return(output  %>% bind_cols())
