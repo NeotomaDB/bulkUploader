@@ -8,6 +8,7 @@ matchPubs <- function(cross, pubs, results) {
   bestMatch <- list()
 
   for(i in 1:length(cross)) {
+    cat('\n')
     bestMatch[[i]] <- findMatch(pubs[i],
                                 results[[i]],
                                 cross[[i]])
@@ -16,5 +17,11 @@ matchPubs <- function(cross, pubs, results) {
       break
     }
   }
-  return(bestMatch)
+
+  for (i in length(bestMatch):1) {
+    if(!class(bestMatch[[i]]) == 'publication') bestMatch[[i]] <- NULL
+  }
+  output <- new('publications', 
+                publications = bestMatch)
+  return(output)
 }

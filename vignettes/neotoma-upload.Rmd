@@ -27,6 +27,30 @@ library(dplyr)
 library(httr)
 ```
 
+## Managing Your Steward Profile
+
+The `bulkUploader` package helps to manage data in Neotoma.  There are helper functions that can assist a user in creating and manipulating `neotoma2` data objects, but to specifically upload data to Neotoma, a user must be a Steward, with a username and password.  Best practice here is to keep your credentials in a separate file, to be read in by the script you are using.  If you are using version control software, you will also want to ensure that the credential file is added to your `.gitignore` file (or `svn:ignore`).  Assuming you have a username `ndevia` and a password `StrongPassword`, you can create a file, `pwcontrol.txt` in your working directory, with the contents:
+
+```
+ndevia
+StrongPassword
+```
+
+You will the read it in and add it to a `bulkUploader` credential object using the `addCredentials()` function:
+
+```{r addCredentials}
+pw <- readr::read_lines('pwcontrol.txt')
+cred <- addCredentials(username = pw[1], password = pw[2])
+cred
+```
+
+Once you've loaded your credentials into the workflow, you can then validate them using the Neotoma API:
+
+```{r checkCredentials}
+cred <- checkCredentials(cred)
+cred
+```
+
 ## Managing your Data
 
 The easiest data to enter into Neotoma is the publication data and contact data.  From a given database, or data resource, we want to check that information is accurate.  For contacts, unless we have ORCIDs for all users, we're stuck hand-checking information.  For publication records we can use the DOI as a "gold standard" for publication information, since CrossRef manages this data for us, and provides a unique identifier that we can check against Neotoma's information.
@@ -53,7 +77,7 @@ Users can directly add new information into Neotoma using the `neotoma2::add_pub
 
 ```{r scrapedois, results='hide'}
 
-# Note that `miomapcsv` is a data element contained within the `bulkUploader` package 
+# Note that `miomapcsv` is a data element contained within the `bulkUploader` package, however the `neotoma_pubs` object is not.
 
 neotoma <- readr::read_csv('./data/neotoma_pubs.csv')
 
@@ -97,18 +121,35 @@ The `matchPubs()` function goes through each of the publications and provides th
 
 ## Matching to Neotoma
 
-For this process, we now have a variable `bestMatch` that is a `neotoma2` package `publications` object.  It contains all the information needed to add a publication to Neotoma (or to match a publication within Neotoma).  By default `bestMatch` does not include `publicationid`, because this data has only been drawn from CrossRef.  We now need to find matches from Neotoma.  To do that, we use the `get_publications()` method implemented for `publication` lists.  This checks for publications that are missing publication IDs and returns that information.
+For this process, we now have a variable `bestMatch` that is a `neotoma2` package `publications` object.  It contains all the information needed to add a publication to Neotoma (or to match a publication within Neotoma).  By default `bestMatch` does not include `publicationid` because this data has only been drawn from CrossRef.  We now need to test to see if the records are found in Neotoma.  We use the `get_publications()` method to do check Neotoma for existing publications.  The API applies full text searching within the database against each `publication` in the set of `publications`.  The function only runs against `publication` objects that do not have `publicationid`s.
 
-```{r}
+```{r getNeotomaMatches}
 matchedPubs <- get_publications(bestMatch)
 ```
 
-## Data States after Matching
+### Data States after Matching
 
-| Publication State | in Miomap | in crossref  | in neotoma |
-| ----------- | -------------- | ------------ | ------------
-| Only in Miomap | X | | |
+When `get_publications()` is applied to a record without a publicationid it returns the best matches that the API can find.  These matches are effectively invisible to the user, but they can be shown using the `showMatches()` function for any particular publication:
 
-In the case where there is a conflict between Neotoma & CrossRef/Miomap either missing data needs to be filled (easy), or one or the other field needs to be updated.
+```{r showFirstMatch}
+showMatch(matchedPubs[[1]])
+```
 
-`attr(toUpdate=FALSE, conflict=NULL)`
+So, a record may have `n` potential matches and we can select a particular `n` match in the `selectMatch(x, n)` function.  In the function `x` is the specific publication, and `n` is the match we want to select.  If we pass `selectMatch(x, n)` for a particular publication, with no option, or `n=NA`, then all matches for the publication `x` are cleared.  In the code below you can see that we clear the matches, and then `showMatch()` returns nothing.
+
+```{r clearMatches}
+matchedPubs[[1]] <- selectMatch(matchedPubs[[1]], NA)
+showMatch(matchedPubs[[1]])
+```
+
+If you do have multiple matches and want to pick a specific one to assign to the unassigned publications, you can use the `selectMatch(x,n)` function, specifying which publication you are replacing by assigning `n` to the number of the best match.  This also clears the close matches found for the record.
+
+```{r assignMatches}
+showMatch(matchedPubs[[2]])
+matchedPubs[[2]] <- selectMatch(matchedPubs[[2]], 1)
+matchedPubs[[2]]
+```
+
+## Uploading Records
+
+Once we've confirmed the records that exist as part of Neotoma, and identified the records that are not part of the database, we then want to upload the new publications to the database.
