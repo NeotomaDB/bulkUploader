@@ -31,7 +31,7 @@ library(httr)
 
 The `bulkUploader` package helps to manage data in Neotoma.  There are helper functions that can assist a user in creating and manipulating `neotoma2` data objects, but to specifically upload data to Neotoma, a user must be a Steward, with a username and password.  Best practice here is to keep your credentials in a separate file, to be read in by the script you are using.  If you are using version control software, you will also want to ensure that the credential file is added to your `.gitignore` file (or `svn:ignore`).  Assuming you have a username `ndevia` and a password `StrongPassword`, you can create a file, `pwcontrol.txt` in your working directory, with the contents:
 
-```
+```r
 ndevia
 StrongPassword
 ```
@@ -44,11 +44,23 @@ cred <- addCredentials(username = pw[1], password = pw[2])
 cred
 ```
 
-Once you've loaded your credentials into the workflow, you can then validate them using the Neotoma API:
+Once you've loaded your credentials into the workflow, you can then validate them using the Neotoma API.  If the credentials are valid, you will see not only the username and (obscured) password, but also the databases to which you have access.  The following code shows the execution pattern, but is not actually executed.  To execute the code yourself copy the
 
-```{r checkCredentials}
+```{r checkCredentials, eval=FALSE}
 cred <- checkCredentials(cred)
 cred
+```
+
+And simply typing `cred` will return:
+
+```r
+User credentials:
+User name:  someUser 
+Password:   ***************
+User credentials are valid for:
+  dbid                                     databasename
+1   13 Academy of Natural Sciences of Drexel University
+2   30    Diatom Paleolimnology Data Cooperative (DPDC)
 ```
 
 ## Managing your Data
@@ -146,6 +158,7 @@ If you do have multiple matches and want to pick a specific one to assign to the
 
 ```{r assignMatches}
 showMatch(matchedPubs[[2]])
+
 matchedPubs[[2]] <- selectMatch(matchedPubs[[2]], 1)
 matchedPubs[[2]]
 ```
