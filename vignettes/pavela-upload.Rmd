@@ -1,8 +1,8 @@
 ---
-title: "Bulk Uploading Pavella Vertebrate Data"
+title: "Bulk Uploading Pavela Vertebrate Data"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Bulk Uploading Pavella Vertebrate Data}
+  %\VignetteIndexEntry{Bulk Uploading Pavela Vertebrate Data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,62 +18,164 @@ The purpose of the `bulkUploader` package is to help data managers to bring thei
 
 Neotoma is really a "database of databases", and contains X constituent databases.  To help data managers include their data in Neotoma, we have wrapped Neotoma package functions around tools to help manage, validate and upload their data into Neotoma.
 
+```{r setup, results='hide', message=FALSE}
+#devtools::install_github('NeotomaDB/bulkUploader')
+library(bulkUploader)
+devtools::install_github('NeotomaDB/neotoma2')
+library(neotoma2)
+library(purrr)
+library(dplyr)
+library(httr)
+```
+
+The functions are not loading so load them all manually
+```{r loadFunctions, results='hide', message=FALSE}
+
+funPaths <- list.files(path = "../R", full.names = TRUE)
+funPaths
+sapply(funPaths, FUN=source)
+
+```
+
+## Managing Your Steward Profile
+
+The `bulkUploader` package helps to manage data in Neotoma.  There are helper functions that can assist a user in creating and manipulating `neotoma2` data objects, but to specifically upload data to Neotoma, a user must be a Steward, with a username and password.  Best practice here is to keep your credentials in a separate file, to be read in by the script you are using.  If you are using version control software, you will also want to ensure that the credential file is added to your `.gitignore` file (or `svn:ignore`).  Assuming you have a username `ndevia` and a password `StrongPassword`, you can create a file, `pwcontrol.txt` in your working directory, with the contents:
+
+```r
+ndevia
+StrongPassword
+```
+
+You will the read it in and add it to a `bulkUploader` credential object using the `addCredentials()` function:
+
+```{r addCredentials}
+pw <- readr::read_lines('pwcontrol.txt')
+cred <- addCredentials(username = pw[1], password = pw[2])
+cred
+```
+
+Once you've loaded your credentials into the workflow, you can then validate them using the Neotoma API.  If the credentials are valid, you will see not only the username and (obscured) password, but also the databases to which you have access.  The following code shows the execution pattern, but is not actually executed.  To execute the code yourself copy the 
+
+JLB NOTE: The text in the line above was not finished...changed eval=TRUE and ran it to execute
+
+```{r checkCredentials, eval=TRUE}
+cred <- checkCredentials(cred)
+cred
+```
+
+And simply typing `cred` will return:
+
+```r
+User credentials:
+User name:  someUser 
+Password:   ***************
+User credentials are valid for:
+  dbid                                     databasename
+1   13 Academy of Natural Sciences of Drexel University
+2   30    Diatom Paleolimnology Data Cooperative (DPDC)
+```
+
 ## Managing your Data
 
-The easiest data to enter into Neotoma is the publication data and contact data.  From a given database, or data resource, check 
+The easiest data to enter into Neotoma is the publication data and contact data.  From a given database, or data resource, we want to check that information is accurate.  For contacts, unless we have ORCIDs for all users, we're stuck hand-checking information.  For publication records we can use the DOI as a "gold standard" for publication information, since CrossRef manages this data for us, and provides a unique identifier that we can check against Neotoma's information.
 
 ### Publication Data
 
-However your publication data is organized, it must be aligned with Neotoma's so that it can be included in the database.  The Neotoma `publications` table uses the following fields:
+However your publication data is organized, it must be aligned with Neotoma's so that it can be included in the database.  The Neotoma `publications` table uses the following fields in the `publication` object:
 
-```{r setup, result='hide'}
-devtools::install_github('NeotomaDB/bulkuploader')
-library(bulkUploader)
-devtools::install_github('NeotomaDB/neotoma2') 
-library(neotoma2)
+| Field | Description |
+=========== | =================
+| publicationtype | The type of publication |
+| publicationid | A unique Neotoma publication identifier |
+| articletitle | The title of the document |
+| year | The publishing year where available |
+| journal | The journal (if available) |
+| volume | Journal volume |
+| issue | Journal issue |
+| pages | Pages over which the item spans |
+| citation | A plain text citation, generally APA format. |
+| doi | The article DOI |
+| author |  A list of `contacts` |
 
+Users can directly add new information into Neotoma using the `neotoma2::add_publication()` function, or they can use `scrape_dois()`, a function in the `bulkUploader` package, to validate publication information and to add additional metadata, where such metadata does not already exist.
+
+JESSICA START HERE with arranging pavela data into 'neotoma_pubs.csv' format
+```{r scrapedois, results='hide'}
+
+# Note that `miomapcsv` is a data element contained within the `bulkUploader` package, however the `neotoma_pubs` object is not.
+
+neotoma <- readr::read_csv('./data/neotoma_pubs.csv')
+
+# Ideally this code would be massaged.  The issue here is that there is title and journal information in several places.  It's not the nicest way of doing things.
+
+pubList <- formatPubs(neotoma, 
+                      citation = 'citation',
+                      year = 'year',
+                      title = c('articletitle', 'booktitle'),
+                      doi = 'doi') %>% filter(!is.na(doi))
+
+outputs <- scrape_dois(pubList[1:10,],
+            n = 3, 
+            savefile = 'data/neotomatab.RDS', 
+            restore = FALSE)
+
+results <- map(outputs, get_cr_results)
 ```
 
-```{r}
-
-results <- data.frame(score=rep(NA, nrow(pavelacsv)), delta = NA)
-outputs <- list()
-
-for (i in 1:nrow(pavelacsv)) {
-  container = ifelse(is.na(pavelacsv$journal[i]),
-                     pavelacsv$booktitle[i],
-                     pavelacsv$journal[i]) # if first element is 'TRUE', then this returns a number corresponding to the level index for the book title' if first element is 'FALSE', then this returns a number corresponding to the level index for the journal
-  if(is.na(container)) {
-    message("Row ", i, " is missing a title.")
-  } else {
-    outputs[[i]] <- scrape_dois(title = pavelacsv$articletitle[i],
-                        year = pavelacsv$year[i])
-    if (length(outputs[[i]]) > 0) {
-      results$score[i] <- outputs[[i]][[1]]$score
-      if (length(outputs[[i]]) > 1) {
-        results$delta[i] <- outputs[[i]][[1]]$score - outputs[[i]][[2]]$score
-      }
-      message("Tested article ", i)
-    } else {
-      message("Couldn't get a match for ", i)
-    }
-  }
-}
-```
-
-From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We also have a `data.frame` called `results` with columns `score` and `delta`.
+From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We have a `list` called `results` with a length equal to the length of `outputs`.  The `results` object is made up of individual `data.frame`s, with columns `score` and `delta`, showing the quality of each match returned by the CrossRef API, and the quality of subsequent matches (using the CrossRef scoring value).  Knowing the `delta` is useful to understand the quality of the matches.  High quality matches have a high `delta` score between the first and second matches, and a generally high `score` value.
 
 The `score` gives the approximate match strength to a publication in CrossRef.  The `delta` lets us know what the score of the next closest match is.  Because we need to work with the CrossRef API in a reasonable way, this matching tends to be slow.
 
 Once this script runs we then have a set of publications for the constituent database, and for each described publication we have 0 or more potential matches.  To generate a simple match we want to create some form of citation.  We can do this using the very simple helper function `makeCite()`.
 
-
 ```{r reviewPubs}
+neoCites <- makeCite(pubList$citation)
 
-pavelacites <- makeCite(pavelacsv$year, 
-                     pavelacsv$articletitle, 
-                     pavelacsv$journal)
-
-crossCites <- outputs %>% map(cr_to_neotoma) # Note: this section may not work until I can get neotoma2 to load
+crossCites <- outputs %>% map(cr_to_neotoma)
 ```
 
+Now, for each publication we have a set of possible matches, and scores.  We need to prompt the user to select the best match:
+
+```{r getMatches, results='hide'}
+bestMatch <- matchPubs(cross = crossCites,
+                       pubs = neoCites,
+                       results = results)
+```
+
+The `matchPubs()` function goes through each of the publications and provides the user with the ability to select the best match for a publication (if it exists) based on the CrossRef metadata.
+
+## Matching to Neotoma
+
+For this process, we now have a variable `bestMatch` that is a `neotoma2` package `publications` object.  It contains all the information needed to add a publication to Neotoma (or to match a publication within Neotoma).  By default `bestMatch` does not include `publicationid` because this data has only been drawn from CrossRef.  We now need to test to see if the records are found in Neotoma.  We use the `get_publications()` method to do check Neotoma for existing publications.  The API applies full text searching within the database against each `publication` in the set of `publications`.  The function only runs against `publication` objects that do not have `publicationid`s.
+
+```{r getNeotomaMatches}
+matchedPubs <- get_publications(bestMatch)
+```
+
+### Data States after Matching
+
+When `get_publications()` is applied to a record without a publicationid it returns the best matches that the API can find.  These matches are effectively invisible to the user, but they can be shown using the `showMatches()` function for any particular publication:
+
+```{r showFirstMatch}
+showMatch(matchedPubs[[1]])
+```
+
+So, a record may have `n` potential matches and we can select a particular `n` match in the `selectMatch(x, n)` function.  In the function `x` is the specific publication, and `n` is the match we want to select.  If we pass `selectMatch(x, n)` for a particular publication, with no option, or `n=NA`, then all matches for the publication `x` are cleared.  In the code below you can see that we clear the matches, and then `showMatch()` returns nothing.
+
+```{r clearMatches}
+matchedPubs[[1]] <- selectMatch(matchedPubs[[1]], NA)
+showMatch(matchedPubs[[1]])
+```
+
+If you do have multiple matches and want to pick a specific one to assign to the unassigned publications, you can use the `selectMatch(x,n)` function, specifying which publication you are replacing by assigning `n` to the number of the best match.  This also clears the close matches found for the record.
+
+```{r assignMatches}
+showMatch(matchedPubs[[2]])
+
+matchedPubs[[2]] <- selectMatch(matchedPubs[[2]], 1)
+matchedPubs[[2]]
+```
+
+## Uploading Records
+
+Once we've confirmed the records that exist as part of Neotoma, and identified the records that are not part of the database, we then want to upload the new publications to the database.
