@@ -166,3 +166,5 @@ matchedPubs[[2]]
 ## Uploading Records
 
 Once we've confirmed the records that exist as part of Neotoma, and identified the records that are not part of the database, we then want to upload the new publications to the database.
+
+## Putting in contacts
