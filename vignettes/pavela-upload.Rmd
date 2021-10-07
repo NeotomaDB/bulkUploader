@@ -100,6 +100,7 @@ However your publication data is organized, it must be aligned with Neotoma's so
 Users can directly add new information into Neotoma using the `neotoma2::add_publication()` function, or they can use `scrape_dois()`, a function in the `bulkUploader` package, to validate publication information and to add additional metadata, where such metadata does not already exist.
 
 JESSICA START HERE with arranging pavela data into 'neotoma_pubs.csv' format
+Here is a test change   
 ```{r scrapedois, results='hide'}
 
 # Note that `miomapcsv` is a data element contained within the `bulkUploader` package, however the `neotoma_pubs` object is not.
