@@ -14,6 +14,17 @@ knitr::opts_chunk$set(
 )
 ```
 
+Note that we need to build the bulkUploader package first.
+Do this through the "build" tab, click "install and restart" 
+If that doesn't work, you can load the functions manually the following way (change eval=TRUE) in the chunk header
+```{r loadFunctions, , eval=FALSE, results='hide', message=FALSE}
+
+funPaths <- list.files(path = "../R", full.names = TRUE)
+funPaths
+sapply(funPaths, FUN=source)
+
+```
+
 The purpose of the `bulkUploader` package is to help data managers to bring their data into the [Neotoma Paleoecology Database](https://neotomadb.org).  Neotoma is a highly structured database that contains information on a large number of data types, including diatoms, ostracodes, pollen and mammal fossils.
 
 Neotoma is really a "database of databases", and contains X constituent databases.  To help data managers include their data in Neotoma, we have wrapped Neotoma package functions around tools to help manage, validate and upload their data into Neotoma.
@@ -26,15 +37,6 @@ library(neotoma2)
 library(purrr)
 library(dplyr)
 library(httr)
-```
-
-The functions are not loading so load them all manually
-```{r loadFunctions, results='hide', message=FALSE}
-
-funPaths <- list.files(path = "../R", full.names = TRUE)
-funPaths
-sapply(funPaths, FUN=source)
-
 ```
 
 ## Managing Your Steward Profile
