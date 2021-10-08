@@ -103,7 +103,7 @@ pubList <- formatPubs(neotoma,
 
 outputs <- scrape_dois(pubList[1:10,],
             n = 3, 
-            savefile = 'data/neotomatab.RDS', 
+            #savefile = 'data/neotomatab.RDS', 
             restore = FALSE)
 
 results <- map(outputs, get_cr_results)
@@ -159,8 +159,9 @@ If you do have multiple matches and want to pick a specific one to assign to the
 ```{r assignMatches}
 showMatch(matchedPubs[[2]])
 
+#I do not think this line of code is working correctly It just makes MatchedPubs into only line 2 and does not keep the other 9 citations.
 matchedPubs[[2]] <- selectMatch(matchedPubs[[2]], 1)
-matchedPubs[[2]]
+showMatch(matchedPubs[[2]])
 ```
 
 ## Uploading Records
@@ -168,3 +169,21 @@ matchedPubs[[2]]
 Once we've confirmed the records that exist as part of Neotoma, and identified the records that are not part of the database, we then want to upload the new publications to the database.
 
 ## Putting in contacts
+
+However your contact data is organized, it must be aligned with Neotoma's so that it can be included in the database.
+Two contact categories:
+Publication related contacts such as Authors and Editors, and Contacts for the dataset.
+
+First we will use the matched publication data to match contacts. 
+
+The contacts need to be formatted as
+
+
+Now we can match them to neotoma
+```{r getNeotomaMatches}
+
+
+matchedContacts <- get_contacts(contact)
+
+
+```
