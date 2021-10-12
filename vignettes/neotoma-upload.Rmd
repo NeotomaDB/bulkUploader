@@ -169,21 +169,46 @@ showMatch(matchedPubs[[2]])
 Once we've confirmed the records that exist as part of Neotoma, and identified the records that are not part of the database, we then want to upload the new publications to the database.
 
 ## Putting in contacts
-
-However your contact data is organized, it must be aligned with Neotoma's so that it can be included in the database.
 Two contact categories:
 Publication related contacts such as Authors and Editors, and Contacts for the dataset.
 
-First we will use the matched publication data to match contacts. 
+First we will use the matched publication data to pull the author information and match that to neotoma.
 
-The contacts need to be formatted as
+Pulling the authors from the publications. The contacts need to be formatted as?
+```{r authorcontacts}
 
+#there is a mismatch between the paths so I had to change x@author to x@author@authors
+pullAuth <- function(x) {
+  x@author@authors %>%
+    map(function(y) paste(y@author@familyname, y@author@givennames, sep=', '))
+}
+
+pullAuth <- function(x) {
+  x@author@authors %>%
+    map(function(y) paste(y@author@familyname))
+}
+
+contact <- pullAuth(matchedPubs)
+
+
+```
 
 Now we can match them to neotoma
 ```{r getNeotomaMatches}
 
-
-matchedContacts <- get_contacts(contact)
+#I am not sure what the data structure needs to be
+matchedContacts <- get_contacts(contact[[1]])
 
 
 ```
+
+user has to select matches?
+```{r assignMatches}
+showMatch(matchedPubs[[2]])
+
+#I do not think this line of code is working correctly It just makes MatchedPubs into only line 2 and does not keep the other 9 citations.
+matchedPubs[[2]] <- selectMatch(matchedPubs[[2]], 1)
+showMatch(matchedPubs[[2]])
+```
+
+many contacts will probably not match up with neotoma right away because of slight differences in name?
