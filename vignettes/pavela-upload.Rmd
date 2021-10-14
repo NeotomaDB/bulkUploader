@@ -94,31 +94,19 @@ Users can directly add new information into Neotoma using the `neotoma2::add_pub
 
 ```{r scrapedois, results='hide'}
 data(pavela)
-# Note that `pavela` is a data element contained within the `bulkUploader` package
+# Note that `pavela` is a data element contained within the `bulkUploader` package, based on raw data from the PaVeLA database. It has info on both publications and authors
 
-neotoma <- pavela$PUBLIC
+neotoma <- pavela$PUBLIC # pull out just the publication dataframe and assign to the neotoma object
 
-# Ideally this code would be massaged.  The issue here is that there is title and journal information in several places.  It's not the nicest way of doing things.
-
-# for pavela, removed citation and doi
+# for pavela, removed citation and doi from this function because these fields are not available for this dataset
 pubList <- formatPubs(neotoma, 
                       year = 'AÑO_PUBLICACION',
-                      title = c('TITULO'))
+                      title = c('TITULO', 'NOMBRE_LIBRO.REVISTA')) 
 
+# had to add a "../" to the savefile to account for the weird handling of Rmd files within R Studio vs Linux.
 outputs <- scrape_dois(pubList[1:10,],
             n = 3, 
-            savefile = NA, 
-            restore = FALSE)
-
-# Blocks of code that didn't work!!
-pubList <- formatPubs(neotoma, 
-                      year = 'AÑO_PUBLICACION',
-                      title = c('TITULO', 'NOMBRE_LIBRO.REVISTA')) # note: this is not working with two elements. The coalesce function isn't working for me.
-
-
-outputs <- scrape_dois(pubList[1:10,],
-            n = 3, 
-            savefile = 'data/pavelatab.RDS',   # argh, this isn't working. Could it be because of the encoding? See this note in readRDS: "If file is a file name, it is opened by gzfile except for save(compress = FALSE) which uses file. Only for the exception are marked encodings of file which cannot be translated to the native encoding handled on Windows."
+            savefile = '../data/pavelatab.RDS',
             restore = FALSE)
 
 results <- map(outputs, get_cr_results)
@@ -131,9 +119,9 @@ The `score` gives the approximate match strength to a publication in CrossRef.  
 Once this script runs we then have a set of publications for the constituent database, and for each described publication we have 0 or more potential matches.  To generate a simple match we want to create some form of citation.  We can do this using the very simple helper function `makeCite()`.
 
 ```{r reviewPubs}
-neoCites <- makeCite(pubList$query.bibliographic)  
+neoCites <- makeCite(pubList$query.bibliographic)  # original code listed pubList$citation, changed to pubList$query.bibliographic because no citation column in PaVeLA data
 
-neoCites <- makeCite(pubList$citation)  # but I don't have a citation column in my data. use query.bibliographic instead?
+neoCites <- makeCite(pubList$citation)  
 
 crossCites <- outputs %>% map(cr_to_neotoma)
 ```
@@ -144,8 +132,6 @@ Now, for each publication we have a set of possible matches, and scores.  We nee
 bestMatch <- matchPubs(cross = crossCites,
                        pubs = neoCites,
                        results = results)
-
-# Notes: the prompt is to accept the *best match*. So why are we also showing the "next match"? This is blurring the matching process for me. When I say "n", it doesn't then ask me about the next match.
 ```
 
 The `matchPubs()` function goes through each of the publications and provides the user with the ability to select the best match for a publication (if it exists) based on the CrossRef metadata.
@@ -170,7 +156,7 @@ showMatch(matchedPubs[[1]])
 So, a record may have `n` potential matches and we can select a particular `n` match in the `selectMatch(x, n)` function.  In the function `x` is the specific publication, and `n` is the match we want to select.  If we pass `selectMatch(x, n)` for a particular publication, with no option, or `n=NA`, then all matches for the publication `x` are cleared.  In the code below you can see that we clear the matches, and then `showMatch()` returns nothing.
 
 ```{r clearMatches}
-matchedPubs[[1]] <- selectMatch(matchedPubs[[1]], NA)
+matchedPubs[[1]] <- selectMatch(matchedPubs[[1]], 1) # something here overwrites the dataframe. bug in selectMatch code.
 showMatch(matchedPubs[[1]])
 ```
 
