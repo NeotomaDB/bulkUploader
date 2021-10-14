@@ -204,11 +204,11 @@ matchedContacts <- get_contacts(contact[[1]])
 
 user has to select matches?
 ```{r assignMatches}
-showMatch(matchedPubs[[2]])
+showMatch(matchedContacts[[2]])
 
 #I do not think this line of code is working correctly It just makes MatchedPubs into only line 2 and does not keep the other 9 citations.
-matchedPubs[[2]] <- selectMatch(matchedPubs[[2]], 1)
-showMatch(matchedPubs[[2]])
+matchedContacts[[2]] <- selectMatch(matchedContacts[[2]], 1)
+showMatch(matchedContacts[[2]])
 ```
 
-many contacts will probably not match up with neotoma right away because of slight differences in name?
+many contacts will probably not match up with neotoma right away because of slight differences in name? so this is a first pass and then there will be a lot of contacts that didn't match.
