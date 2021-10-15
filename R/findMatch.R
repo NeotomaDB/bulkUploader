@@ -6,9 +6,9 @@
 findMatch <- function(valid, scores, test) {
 
   if (length(test@publications) > 0) {
-    cat("Citation to match:\n")
+    cat("==Citation to match:==\n")
     cat(valid)
-    cat('\n', sprintf('** Best match score: %.1f; Next match (delta): -%.1f **', scores$scores[1], scores$diff[1]), '\n')
+    cat('\n\t\t', sprintf('** Best match score: %.1f; Next match (delta): -%.1f **', scores$scores[1], scores$diff[1]), '\n')
     cat('==Best Match==\n')
     cat(test@publications[[1]]@citation, '\n')
     if (length(test@publications) > 1) {
