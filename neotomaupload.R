@@ -25,7 +25,7 @@ pubList <- formatPubs(neotoma,
                       year = 'year',
                       title = c('articletitle', 'booktitle'),
                       doi = 'doi')
-colnames(pubList)[3] <- "query.bibliographic" 
+colnames(pubList)[3] <- "query.bibliographic"
 
 #restore=TRUE will load the previous results if you stop the function mid way.
 #this loads the new scrape_dois function
@@ -37,7 +37,8 @@ outputs <- scrape_dois(pubList,
             restore = TRUE)
 
 #dat <- readRDS("neotomatab.RDS")
-
+#seems to not work throws an error  Error: $ operator is invalid for atomic vectors
+#not sure what my new code does to make this happen
 results <- map(outputs, get_cr_results)
 
 
@@ -55,13 +56,18 @@ crossCites <- outputs %>% map(cr_to_neotoma)
 #Now, for each publication we have a set of possible matches, and scores.  We need to prompt the user to select the best match:
 #The `matchPubs()` function goes through each of the publications and provides the user with the ability to select the best match for a publication (if it exists) based on the CrossRef metadata.
 ## ----getMatches, results='hide'--------------------------------------------------------------------------------------------------------
-#Can saving the RDS object like we did for scrape_dois works here?
+#Can saving the RDS object like we did for scrape_dois works here? no needs to be coded to save
+source('matchPubs.r')
+
 bestMatch <- matchPubs(cross = crossCites,
                        pubs = neoCites,
-                       results = results)
+                       results = results,
+                       savefile= "matchedneotoma.RDS",
+                       restore = TRUE)
 
-#writing the r object to send back to the Neotoma group.
-saveRDS(object, file = "matched_neotoma_citations.rds")
+dat <- readRDS("matchedneotoma.RDS")
+
+#best match saved the information into a RDS file
 
 
 

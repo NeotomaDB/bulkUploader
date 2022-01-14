@@ -4,10 +4,17 @@
 #' @param pubs A \code{data.frame()} from the users (unformatted) publication data.
 #' @param results The match values returned from \code{scrape_dois()}.
 #' @export
-matchPubs <- function(cross, pubs, results) {
-  bestMatch <- list()
-
-  for(i in 1:length(cross)) {
+matchPubs <- function(cross, pubs, results, savefile = NA, restore = TRUE) {
+  if(!is.na(savefile) & restore == TRUE) {
+    bestMatch <- try(readRDS(savefile), silent = TRUE)
+    if('try-error' %in% class(bestMatch)) {
+      warning("Could not find savefile to restore from.  Generating new save file.")
+      bestMatch <- list()
+    }
+  } else {
+    bestMatch <- list()
+  }
+  for(i in (length(bestMatch) + 1):length(cross)) {
     cat('\n')
     bestMatch[[i]] <- findMatch(pubs[i],
                                 results[[i]],
@@ -21,7 +28,10 @@ matchPubs <- function(cross, pubs, results) {
   for (i in length(bestMatch):1) {
     if(!class(bestMatch[[i]]) == 'publication') bestMatch[[i]] <- NULL
   }
-  output <- new('publications', 
+  output <- new('publications',
                 publications = bestMatch)
+  if(!is.na(savefile)) {
+    saveRDS(output, savefile)
+  }
   return(output)
 }
