@@ -36,11 +36,18 @@ outputs <- scrape_dois(pubList,
             savefile = 'neotomatab.RDS',
             restore = TRUE)
 
-#dat <- readRDS("neotomatab.RDS")
+dat <- readRDS("neotomatab.RDS")
+dat2 <- readRDS("neotomatabfull.RDS")
 #seems to not work throws an error  Error: $ operator is invalid for atomic vectors
 #not sure what my new code does to make this happen
-results <- map(outputs, get_cr_results)
+#results <- map(outputs, get_cr_results)
+results <- map(dat, get_cr_results)
 
+results2 <- map(dat2, get_cr_results)
+for (i in 1:length(dat2)) {
+  aa <- get_cr_results(dat2[[i]])
+
+}
 
 ## ----reviewPubs------------------------------------------------------------------------------------------------------------------------
 #From this output we have a `list` object called `outputs`, with a length equal to the number of publications in the original data file.  We have a `list` called `results` with a length equal to the length of `outputs`.  The `results` object is made up of individual `data.frame`s, with columns `score` and `delta`, showing the quality of each match returned by the CrossRef API, and the quality of subsequent matches (using the CrossRef scoring value).  Knowing the `delta` is useful to understand the quality of the matches.  High quality matches have a high `delta` score between the first and second matches, and a generally high `score` value.
@@ -62,10 +69,10 @@ source('matchPubs.r')
 bestMatch <- matchPubs(cross = crossCites,
                        pubs = neoCites,
                        results = results,
-                       savefile= "matchedneotoma.RDS",
+                       savefile= "matchedneotomatest.RDS",
                        restore = TRUE)
 
-dat <- readRDS("matchedneotoma.RDS")
+matcheddat <- readRDS("matchedneotoma.RDS")
 
 #best match saved the information into a RDS file
 

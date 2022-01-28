@@ -20,14 +20,14 @@ matchPubs <- function(cross, pubs, results, savefile = NA, restore = TRUE) {
                                 results[[i]],
                                 cross[[i]])
     if (!('publication' %in% class(bestMatch[[i]]) | suppressWarnings(is.na(bestMatch[[i]])))) {
-      bestMatch[[i]] <- NULL
+      bestMatch[[i]] <- NA
       break
     }
   }
 
-  for (i in length(bestMatch):1) {
-    if(!class(bestMatch[[i]]) == 'publication') bestMatch[[i]] <- NULL
-  }
+  #for (i in length(bestMatch):1) {
+   # if(!class(bestMatch[[i]]) == 'publication') bestMatch[[i]] <- NULL
+ # }
   output <- new('publications',
                 publications = bestMatch)
   if(!is.na(savefile)) {
