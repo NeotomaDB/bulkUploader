@@ -18,18 +18,18 @@ findMatch <- function(valid, scores, test) {
 
     works <- ''
 
-    while (! works %in% c('y','n', 'c')) {
+    while (!works %in% c('y','n', 'c')) {
       works <- readline("Accept *best* match? (y/n [c to cancel]) > ") %>%
         tolower()
     }
 
     output <- switch(works,
                      y = test@publications[[1]],
-                     n = NA,
+                     n = new("publication"),
                      c = "break")
     return(output)
   } else {
-    return(NA)
+    return(new("publication"))
   }
 
 }
