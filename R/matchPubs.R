@@ -5,33 +5,40 @@
 #' @param results The match values returned from \code{scrape_dois()}.
 #' @export
 matchPubs <- function(cross, pubs, results, savefile = NA, restore = TRUE) {
-  if(!is.na(savefile) & restore == TRUE) {
+  if (!is.na(savefile) & restore == TRUE) {
     bestMatch <- try(readRDS(savefile), silent = TRUE)
-    if('try-error' %in% class(bestMatch)) {
+    if ('try-error' %in% class(bestMatch)) {
       warning("Could not find savefile to restore from.  Generating new save file.")
       bestMatch <- list()
+    } else {
+      bestMatch <- bestMatch@publications
     }
   } else {
     bestMatch <- list()
   }
-  for(i in (length(bestMatch) + 1):length(cross)) {
+
+  for (i in (length(bestMatch) + 1):length(cross)) {
     cat('\n')
     bestMatch[[i]] <- findMatch(pubs[i],
                                 results[[i]],
                                 cross[[i]])
-    if (!('publication' %in% class(bestMatch[[i]]) | suppressWarnings(is.na(bestMatch[[i]])))) {
-      bestMatch[[i]] <- NA
-      break
+
+    if (class(bestMatch[[i]]) == "publication") {
+      if (!is.na(savefile)) {
+        output <- new('publications',
+                      publications = bestMatch)
+        saveRDS(output, savefile)
+      }
+    } else {
+      if (bestMatch[[i]] == "break") {
+        bestMatch[[i]] <- NULL
+        break
+      }
     }
   }
 
-  #for (i in length(bestMatch):1) {
-   # if(!class(bestMatch[[i]]) == 'publication') bestMatch[[i]] <- NULL
- # }
   output <- new('publications',
                 publications = bestMatch)
-  if(!is.na(savefile)) {
-    saveRDS(output, savefile)
-  }
+
   return(output)
 }
