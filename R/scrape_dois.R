@@ -20,19 +20,34 @@ scrape_dois <- function(x, n = 20,
 
   pullResult <- function(inp) {
     if('doi' %in% names(inp)) {
-      if(is.na(inp$doi)) inp$doi <- NULL
-    }
+      if(is.na(inp$doi)) inp$doi <- NULL}
     if('doi' %in% names(inp)) {
       url <- paste0("https://api.crossref.org/works/", inp$doi)
-      result <- httr::GET(url,
+      result <- tryCatch({httr::GET(url,
                           add_headers(mailto="neotomadb@gmail.com"),
                           user_agent("Neotoma Bulk Uploader v0.1 (https://github.com/NeotomaDB/bulkUploader)"))
+      }, error=function(cond) {
+        return(NA)
+      },
+      warning=function(cond) {
+        return(NA)
+      }
+      )
+      if(is.na(result)){return(NA)}
     } else {
       url <- "https://api.crossref.org/works"
-      result <- httr::GET(url,
+      result <- tryCatch({httr::GET(url,
                         query=inp,
                         add_headers(mailto="neotomadb@gmail.com"),
                         user_agent("Neotoma Bulk Uploader v0.1 (https://github.com/NeotomaDB/bulkUploader)"))
+      }, error=function(cond) {
+        return(NA)
+      },
+      warning=function(cond) {
+        return(NA)
+      }
+      )
+      if(is.na(result)){return(NA)}
     }
     if (result$status_code == 200) {
       output <- httr::content(result)
@@ -42,12 +57,12 @@ scrape_dois <- function(x, n = 20,
       } else {
         pubs <- list(output$message)
       }
-      
+
       return(pubs)
     } else {
       return(NULL)
     }
-  }
+    }
 
   if(!is.na(savefile) & restore == TRUE) {
     output <- try(readRDS(savefile), silent = TRUE)

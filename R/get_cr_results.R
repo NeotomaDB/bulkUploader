@@ -4,9 +4,15 @@
 #' @export
 get_cr_results <- function(x) {
   if (length(x) > 0) {
-    scores = unlist(map(x, function(z) { z$score }))
-    output <- data.frame(scores = scores,
-                         diff = c(-diff(scores), 0))
+    if(!is.na(x)){
+      scores = unlist(map(x, function(z) { z$score }))
+      output <- data.frame(scores = scores,
+                           diff = c(-diff(scores), 0))
+    }else{
+      output <- data.frame(scores = NA,
+                           diff = NA)
+    }
+
   } else {
     output <- data.frame(scores = NA,
                          diff = NA)
