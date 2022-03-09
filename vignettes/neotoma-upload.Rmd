@@ -99,7 +99,7 @@ pubList <- formatPubs(neotoma,
                       title = c('articletitle', 'booktitle'),
                       doi = 'doi') %>% dplyr::filter(!is.na(doi))
 
-outputs <- scrape_dois(pubList[1:10,],
+outputs <- scrape_dois(pubList,
             n = 10, 
             savefile = 'data/neotomatab.RDS', 
             restore = FALSE)
