@@ -20,7 +20,7 @@ Neotoma is really a "database of databases", and contains X constituent database
 
 ```{r setup, results='hide', message=FALSE}
 library(bulkUploader)
-devtools::install_github('NeotomaDB/neotoma2')
+# devtools::install_github('NeotomaDB/neotoma2')
 library(neotoma2)
 pacman::p_load(purrr, dplyr, httr)
 ```
@@ -100,7 +100,7 @@ pubList <- formatPubs(neotoma,
                       doi = 'doi') %>% dplyr::filter(!is.na(doi))
 
 outputs <- scrape_dois(pubList[1:10,],
-            n = 3, 
+            n = 10, 
             savefile = 'data/neotomatab.RDS', 
             restore = FALSE)
 
@@ -166,3 +166,105 @@ matchedPubs[[2]]
 ## Uploading Records
 
 Once we've confirmed the records that exist as part of Neotoma, and identified the records that are not part of the database, we then want to upload the new publications to the database.
+
+## Uploading Taxa
+
+Given a set of taxa structured in a CSV file:
+
+```csv
+Class,TaxOrder,Family,Genus,Species,Neotoma Name,Original Ref,Current Ref,Notes
+Mammalia,Artiodactyla,,,,"Owen, 1848","Spaulding et al., 2009",
+Mammalia,Artiodactyla,Agriochoeridae,,,	Agriochoeridae,"Leidy, 1869","Lander, 1998"
+```
+
+First, obtain the full set of Neotoma records:
+
+```{r}
+neoTaxa <- get_table("taxa", limit = 90000)
+```
+
+Load in the CSV:
+
+```{r loadMioCSV}
+importTaxa <- readr::read_csv("data/neotomaTaxonomy.csv")
+```
+
+Choose the columns that you want to match to the Neotoma taxonomy (`select()`), create a `data.frame` with those names, and then join it (`left_join()`) to the existing Neotoma taxonomy:
+
+```{r}
+allNames <- importTaxa %>% 
+  select(class, order, family, genus, Neotoma) %>% 
+  unlist() %>% 
+  unique() %>% 
+  na.omit() %>% 
+  data.frame(taxon = .) %>% 
+  left_join(neoTaxa, by = c("taxon" = "taxonname")) %>% 
+  select(taxon, taxonid) %>% 
+  filter(!is.na(taxonid))
+```
+
+```{r SetUpMatches}
+newTaxon <- list()
+
+newImport <- importTaxa %>% 
+  select(class, order, family, genus, Neotoma)
+
+# First we reassign names using taxonids where they exist.
+for (i in 1:nrow(allNames)) {
+  newImport[newImport == allNames$taxon[i]] <- as.character(allNames$taxonid[i])
+}
+
+for (i in 1:nrow(newImport)) {
+  for (j in 1:ncol(newImport)) {
+    if (is.na(as.numeric(newImport[i,j])) & !is.na(newImport[i,j])) {
+      
+      taxoncode <- ""
+      n <- 3
+      taxset <- c(neoTaxa$taxoncode, unlist(purrr::map(newTaxon, function(x)x$code)))
+      while (taxoncode %in% taxset | taxoncode == "") {
+        taxoncode <- unlist(newImport[i,j]) %>% 
+          strsplit(" ") %>% 
+          unlist() %>% 
+          purrr::map(function(x) substr(x, 1, n)) %>% 
+          paste0(collapse = ".")
+        n <- n + 1
+      }
+      
+      newTaxon[[(length(newTaxon) + 1)]] <- 
+        data.frame(code = taxoncode,
+                   name = unlist(newImport[i,j]),
+                   extinct = TRUE,
+                   groupid = "VPL",
+                   author = importTaxa$currentref[i],
+                   valid  = TRUE,
+                   higherid = unlist(newImport[i,j - 1]),
+                   pubid = importTaxa$currentref[i],
+                   validatorid = 6289,
+                   validatedate = lubridate::today(), 
+                   notes = NA)
+      
+      newImport[newImport == unlist(newImport[i,j])] <- as.character(-length(newTaxon))
+    }
+  }
+}
+
+newTaxon <- newTaxon %>% bind_rows()
+
+readr::write_csv(newTaxon, 'data/newTaxatoWrite.csv')
+
+for (i in 1:nrow(importTaxa)) {
+  for (j in c("class", "order", "family", "genus", "Neotoma")) {
+    
+  }
+  if (!is.na(importTaxa$`Neotoma Name`[i])) {
+    taxonWhich <- which(importTaxa$`Neotoma Name`[i] == allNames$taxon)
+    if (length(taxonWhich == 1)) {
+      taxonMatch[[i]] <- neoTaxa[taxonMatch,]
+    }
+  } else {
+    taxonMatch <- NA
+  }
+}
+```
+
+## Uploading Sites
