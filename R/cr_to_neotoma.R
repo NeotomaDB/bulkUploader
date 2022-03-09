@@ -29,7 +29,9 @@ cr_to_neotoma <- function(crObject) {
     testNull <- function(val, out) {
       if(is.null(val)) { return(out)} else {return(val)}
     }
-
+    if (length(x$title)== 0){
+      x$title <- ""
+      }
     new("publication",
         publicationtype = testNull(x$type, NA_character_),
         publicationid = NA_integer_,
